@@ -1,0 +1,23 @@
+# Generated outputs — do not commit personal documents
+outputs/resumes/*.docx
+outputs/resumes/*.pdf
+outputs/cover-letters/*.docx
+outputs/cover-letters/*.pdf
+outputs/reports/*.md
+outputs/interview-notes/*.md
+
+# Personal profile — do not commit your resume to a public repo
+profile/master-resume.pdf
+profile/master-resume.md
+
+# Keep the placeholder files
+!profile/master-resume.md.example
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
