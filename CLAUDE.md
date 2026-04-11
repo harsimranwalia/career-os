@@ -130,16 +130,104 @@ When a skill requires generating a `.docx` or `.pdf` file:
 
 ---
 
-## Session State
+## Persistent Memory
 
-Claude Code has no memory between sessions. At the start of each session:
+Career OS maintains memory files in `.claude/memory/` that persist across sessions.
+These are written by Claude — never pre-filled with defaults.
+
+### Reading memory
+
+At the start of every session, check both files if they exist:
+
+```
+.claude/memory/targets.md    ← job search targets, constraints, preferences
+.claude/memory/learnings.md  ← patterns learned from previous skill runs
+```
+
+Use them to inform decisions without asking the human to repeat themselves:
+- `targets.md` guides job selection, filtering, resume tone, and salary framing
+- `learnings.md` surfaces patterns (e.g. "PM roles at startups scored poorly last time")
+
+If the files are empty or absent, proceed normally — memory builds up over time.
+
+### Writing memory
+
+Update memory after interactions that reveal something durable:
+
+| Trigger | What to write | File |
+|---------|--------------|------|
+| Human mentions target role, salary, location, visa, or company preferences | Capture the preference | `targets.md` |
+| Human corrects or refines a previous preference | Update the relevant section | `targets.md` |
+| `/job-scout` completes | Note which search terms and sources produced relevant results | `learnings.md` |
+| `/job-match` completes | Log company, role, score, decision, and any recurring skill gaps | `learnings.md` |
+| Human gives feedback on a resume or cover letter | Note what they liked or changed | `learnings.md` |
+| `/mock-interview` debrief completes | Note weak areas and strong stories | `learnings.md` |
+
+Write only what was actually said or observed — never invent or assume.
+Add to existing sections; do not overwrite unless correcting something wrong.
+
+### Session state
+
+At the start of each session:
 
 - Re-read `profile/master-resume.md`
+- Load `.claude/memory/targets.md` and `.claude/memory/learnings.md` if present
 - Check `outputs/` to understand what has already been generated
-- If the human references a previous scout result or match report, look for it in `outputs/reports/`
+- If the human references a previous output (e.g. "use the resume you made yesterday"),
+  search `outputs/` by filename pattern before asking them to re-provide anything
 
-If a previous output is referenced (e.g. "use the resume you made yesterday"),
-search `outputs/` by filename pattern before asking the human to re-provide information.
+---
+
+## Quick Score — Pre-Filter Layer
+
+Before running `/job-match` on any job, apply the pre-filter scoring layer.
+Full spec: **`.claude/intelligence/pre_filter.md`** — read it before scoring any job.
+
+**Summary:** Each job is scored 0–20 across Role Match, Seniority Fit, Industry Relevance,
+and Geography/Visa/Constraints. Threshold ≥ 14 to proceed to `/job-match`.
+
+### When to apply
+
+- After `/job-scout` returns results — score all jobs before presenting the table
+- When the human pastes a JD and asks to evaluate it — score first, warn if < 14
+- When chaining skills and a job number is referenced — re-check score before proceeding
+
+---
+
+## Application Tracking
+
+Career OS tracks every application in `.claude/state/applications.md`.
+
+### Before running /job-match
+
+Check if the company + role combination already exists in the tracker:
+- If yes → warn the human: "You've already applied to [Company] for [Role] on [Date] — status: [Status]. Run `/job-match` again? (yes / skip)"
+- If no → proceed normally
+
+### After generating a resume
+
+Add a row to `.claude/state/applications.md`:
+
+```
+| company | role | YYYY-MM-DD | resume_generated | resume_[company]_[role]_[date] | — |
+```
+
+### When the human reports an update
+
+Update the Status field for the matching row. Valid statuses:
+
+| Status | Meaning |
+|--------|---------|
+| `resume_generated` | Resume created, not yet submitted |
+| `applied` | Application submitted |
+| `screen` | Phone/recruiter screen scheduled or completed |
+| `interview` | Technical or panel interview stage |
+| `offer` | Offer received |
+| `rejected` | Application rejected |
+| `withdrawn` | Human withdrew the application |
+
+To update: "I heard back from Shopify — they want to interview me"
+→ find the Shopify row, update status to `interview`, add date note.
 
 ---
 
@@ -195,4 +283,4 @@ description: "One sentence description for trigger matching."
 ```
 2. Update this CLAUDE.md skill directory table
 3. Update `pipelines/` files if the skill fits into a pipeline
-4. Update `project-setup/project-system-prompt.md` for web/desktop users
+4. Install it as a custom skill in the Claude Project (web/desktop users)

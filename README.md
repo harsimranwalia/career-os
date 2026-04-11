@@ -104,97 +104,121 @@ outputs/
 
 ---
 
-### Option B — Claude.ai Web or Desktop (No setup required)
+### Option B — Claude.ai Web or Desktop (No coding required)
 
-If you're not a developer, you don't need Claude Code. You can use Career OS entirely inside a Claude Project on claude.ai. This approach is slightly more manual but just as powerful.
+Use Career OS entirely inside a Claude Project on claude.ai. Setup takes 10–15 minutes.
 
 **Step 1 — Create a Project**
 
-1. Go to [claude.ai](https://claude.ai)
-2. Click **Projects** in the left sidebar → **New Project**
-3. Name it: `Career OS` (or your name + Job Search)
+1. Go to [claude.ai](https://claude.ai) and sign in
+2. Click **Projects** in the left sidebar → **+ New Project**
+3. Name it: `Career OS`
 
-**Step 2 — Upload your profile files**
+**Step 2 — Add your resume**
 
-Inside the project, click **Add content** and upload:
-- Your master resume (PDF or Word doc)
-- Your LinkedIn profile export (optional — download from LinkedIn Settings → Data Privacy)
-- Any other background documents (portfolio, bio, references)
+1. Inside the project, click **Project knowledge** → **Add text**
+2. Name it: `Master Resume`
+3. Paste your full resume as plain text — include all roles, achievements, skills, education, and contact info
+4. Click **Save**
+
+> Include specific metrics ("grew revenue 34%", "managed a team of 8") and your full contact info — skills extract these automatically.
+
+Optionally add your LinkedIn profile: **Add text** → name it `LinkedIn Profile` → paste your headline and About section. Used by `/linkedin-optimizer`; skippable.
 
 **Step 3 — Add the Project Instructions**
 
-Click **Edit project instructions** and paste the contents of:
-```
-project-setup/project-system-prompt.md
-```
+1. Click **Instructions** → **Edit project instructions**
+2. Paste the full contents of `project-system-prompt.md` (root of this repo)
+3. Click **Save**
 
-This tells Claude that your resume is always in context and enables all eight skills.
+The instructions are intentionally minimal — skill logic lives in the custom skills, not here.
 
-**Step 4 — Use skills by command**
+**Step 4 — Install the Skills**
 
-In any chat within the project, trigger skills with their slash command:
+Skills run from **Claude custom skills**, not the project instructions. For each skill:
+
+1. Inside the project, go to **Custom skills** → **Add custom skill**
+2. Name it the skill command (e.g. `job-scout`)
+3. Paste the full contents of the corresponding `skills/<name>/SKILL.md` file
+
+| Custom skill name | File to paste |
+|-------------------|---------------|
+| `job-scout` | `skills/job-scout/SKILL.md` |
+| `job-match` | `skills/job-match/SKILL.md` |
+| `tailored-resume-generator` | `skills/tailored-resume-generator/SKILL.md` |
+| `cover-letter-generator` | `skills/cover-letter-generator/SKILL.md` |
+| `interview-prep` | `skills/interview-prep/SKILL.md` |
+| `mock-interview` | `skills/mock-interview/SKILL.md` |
+| `linkedin-optimizer` | `skills/linkedin-optimizer/SKILL.md` |
+| `cold-outreach` | `skills/cold-outreach/SKILL.md` |
+
+**Step 5 — Enable Web Search**
+
+Required for `/job-scout`, `/job-match` (comp data), and `/cold-outreach`. In any project chat, click the **Tools** icon and toggle **Web Search** on.
+
+**Step 6 — Start using skills**
+
+Open a **New Chat inside the project** (not a general chat — it must be inside Career OS) and run any skill:
 
 ```
 /job-scout Product Manager remote Canada
 
-/job-match [paste job description here]
+/job-match
+[paste job description]
 
-/tailored-resume-generator [paste job description here]
+/tailored-resume-generator #1      ← references job #1 from a previous scout
 
-/cover-letter-generator [paste job description here]
+/cover-letter-generator #1
 
-/interview-prep [paste job description here]
+/interview-prep #1
 
-/mock-interview [paste job description here]
+/mock-interview                    ← JD already in context after /interview-prep
 
-/linkedin-optimizer targeting: Senior Product Manager at a B2B SaaS company
+/linkedin-optimizer targeting: Senior PM at a B2B SaaS company
 
-/cold-outreach reach out to the hiring manager at Shopify for the PM role
+/cold-outreach
+Recruiter: Jane Smith at Shopify
+Goal: Connection request about PM openings
 ```
 
-**Step 5 — Chain skills manually**
-
-After `/job-scout` produces a ranked table, pick a job and run:
+**Chaining skills:** after `/job-scout` produces a ranked table, reference jobs by number. Context carries forward within the session — no need to paste the JD again.
 
 ```
+/job-scout Senior Engineer Toronto
 /job-match #1
-```
-
-Then:
-```
 /tailored-resume-generator #1
 /cover-letter-generator #1
 /interview-prep #1
+/mock-interview
 ```
-
-Then when the interview is scheduled:
-```
-/mock-interview #1
-```
-
-**Important:** In the web/desktop version, skills are loaded from the project instructions context — not from files. The `project-setup/project-system-prompt.md` file contains condensed versions of all skill triggers so Claude knows how to run each one without reading individual SKILL.md files.
 
 ---
 
 ## The Standard Workflow
 
 ```
-1. /job-scout        → Ranked table of 10–15 live jobs, scored against your resume
+1. /job-scout                     → 20–50 live jobs from 7 sources
         ↓
-2. /job-match #N     → Is this job worth applying to? Full A–F report
+2. Quick Score (automatic)        → Each job scored 0–20 across 4 dimensions
+                                    Only jobs ≥ 14 proceed — the rest are shown but skipped
         ↓
-3. /tailored-resume-generator #N  → ATS-optimised .docx resume for that job
+3. /job-match #N                  → Deep A–F evaluation on shortlisted jobs only
+                                    (duplicate check: warns if already applied)
         ↓
-4. /cover-letter-generator #N     → Matched cover letter (.docx or PDF)
+4. /tailored-resume-generator #N  → ATS-optimised .docx for top opportunities only
         ↓
-5. Apply             → Submit resume + cover letter
+5. /cover-letter-generator #N     → Matched cover letter (.docx or PDF)
         ↓
-6. /interview-prep #N → 10 questions + STAR+R frameworks before the interview
+6. Apply                          → Submit — Claude logs it to application tracker
         ↓
-7. /mock-interview #N → Live practice session with feedback
+7. /interview-prep #N             → 10 questions + STAR+R frameworks
         ↓
-8. Negotiate         → Use /job-match comp data to anchor your salary negotiation
+8. /mock-interview #N             → Live practice session with per-answer feedback
+        ↓
+9. Negotiate                      → Use /job-match comp data to anchor salary
 ```
+
+The Quick Score layer is the key efficiency lever — `/job-match` is expensive and thorough, so it only runs on jobs that clear the bar. Quick Score uses your `targets.md` preferences (visa, location, role, industry) to filter automatically.
 
 ---
 
@@ -211,6 +235,40 @@ The `profile/` directory is the only thing you need to personalise. Every skill 
 
 ---
 
+## Memory (Claude Code only)
+
+Career OS builds up a memory layer across sessions automatically — no setup required.
+
+```
+.claude/memory/
+├── targets.md      Target roles, salary, location, visa, company preferences
+└── learnings.md    Patterns from scout results, match scores, interview feedback
+```
+
+Claude writes to these files during conversations when it learns something durable:
+- Tell it you want PM roles in Canada at $140k+ → written to `targets.md`
+- Run `/job-scout` and certain sources perform well → noted in `learnings.md`
+- Give feedback on a resume → captured for future runs
+
+On the next session, Claude reads both files before running any skill — so it already knows your constraints without you repeating them. The files start empty and compound over time.
+
+---
+
+## Application Tracking (Claude Code only)
+
+Every resume generation and application is logged automatically.
+
+```
+.claude/state/
+└── applications.md     Running log of every application and its current status
+```
+
+Claude writes a new row whenever a resume is generated, and updates the status when you report back ("I got an interview at Shopify"). Before generating a resume, it checks for duplicates and warns you if you've already applied to that company + role.
+
+Statuses: `resume_generated` → `applied` → `screen` → `interview` → `offer` / `rejected` / `withdrawn`
+
+---
+
 ## Outputs
 
 All generated files are saved to `outputs/` with consistent naming:
@@ -221,20 +279,6 @@ outputs/cover-letters/    cover_letter_[Company]_[Role]_[Date].docx
 outputs/reports/          match_report_[Company]_[Role]_[Date].md
 outputs/interview-notes/  prep_[Company]_[Role]_[Date].md
 ```
-
----
-
-## Adding Skills to Claude.ai (Web/Desktop) Manually
-
-If you want to install individual skills into Claude's web shortcuts instead of using a project:
-
-1. Open the Claude Chrome Extension or Claude.ai sidebar
-2. Go to **Settings → Shortcuts**
-3. Create a new shortcut for each skill
-4. Name it the skill's command (e.g. `job-scout`)
-5. Paste the contents of `skills/job-scout/SKILL.md` as the shortcut body
-
-This lets you trigger skills from any Claude chat with `/job-scout`, `/job-match`, etc. — even outside a project.
 
 ---
 
@@ -278,7 +322,7 @@ name: your-skill-name
 description: "Trigger description — what this skill does and when to use it."
 ---
 ```
-3. Add it to `project-setup/project-system-prompt.md` so web/desktop users can trigger it
+3. Install it as a custom skill in your Claude Project (paste the full SKILL.md content)
 4. Document it in this README
 
 ---
